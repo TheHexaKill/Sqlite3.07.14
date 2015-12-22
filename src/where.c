@@ -52,7 +52,7 @@
 ** REAL: 以Julian日期格式存储
 ** INTEGER: 以Unix时间形式保存数据值，即从1970-01-01 00:00:00到当前时间所流经的秒数。
 */
-#include "sqliteInt.h"
+#include "sqliteInt.h" //引用了自定义的sqliteInt头文件
 
 
 /*
@@ -87,11 +87,11 @@ int sqlite3WhereTrace = 0;
 ** 4使用相关的函数重置这个语句，然后回到第2步，这个过程做0次或多次.
 ** 5使用相关函数销毁这个对象.
 */
-typedef struct WhereClause WhereClause;
-typedef struct WhereMaskSet WhereMaskSet;
-typedef struct WhereOrInfo WhereOrInfo;
-typedef struct WhereAndInfo WhereAndInfo;
-typedef struct WhereCost WhereCost;
+typedef struct WhereClause WhereClause; // 该结构体的数组用于分析WHERE语句的子表达式
+typedef struct WhereMaskSet WhereMaskSet;// 该结构体的一个对象实例用于保存整个WHERE语法树的信息
+typedef struct WhereOrInfo WhereOrInfo; //若WhereTerm的eOperator字段等于WO_OR则该WhereTerm里的u.pOrInfo指针指向该结构体的一个动态分配的实例。
+typedef struct WhereAndInfo WhereAndInfo;//若WhereTerm的eOperator字段等于WO_OR则该WhereTerm里的u.pOrInfo指针指向该结构体的一个动态分配的实例。
+typedef struct WhereCost WhereCost;// WhereCost的对象记录一个查询策略以及预估的进行该策略的成本。
 
 /*  ****************** WhereTerm定义说明 *********************
 **
@@ -597,7 +597,7 @@ static void whereClauseInit(
 ** 外连接 - OUTER JOIN
 */
 /* Forward reference(前置引用) 具体函数在下面 */
-static void whereClauseClear(WhereClause*);
+static void whereClauseClear(WhereClause*);//解除一个WhereClause数据结构的分配
 
 /*
 ** Deallocate all memory associated with a WhereAndInfo object.
@@ -607,7 +607,7 @@ static void whereClauseClear(WhereClause*);
 ** Deallocate all memory associated with a WhereAndInfo object.
 ** 解除WhereAndInfo对象的所有内存分配.
 */
-static void whereAndInfoDelete(sqlite3 *db, WhereAndInfo *p){
+static void whereAndInfoDelete(sqlite3 *db, WhereAndInfo *p){//解除whereOrInfo对象的所有内存分配
   whereClauseClear(&p->wc);	 /*解除分配*/
   sqlite3DbFree(db, p);	 /*释放被关联到一个特定数据库连接的内存*/
 }
@@ -684,7 +684,7 @@ static void whereClauseClear(WhereClause *pWC){
 ** 所有指向WhereTerms的指针需要设定为失效,在调用这个程序后.
 ** 一些索引可能通过引用pWC->a[]被重新启用.
 */
-static int whereClauseInsert(WhereClause *pWC, Expr *p, u8 wtFlags){
+static int whereClauseInsert(WhereClause *pWC, Expr *p, u8 wtFlags){//添加单个新WhereTerm对象到WhereClause对象pWC中
   WhereTerm *pTerm;   /* 新建一个WhereTerm */
   int idx;
   testcase( wtFlags & TERM_VIRTUAL );  /* EV: R-00211-15100 */
@@ -769,7 +769,7 @@ static int whereClauseInsert(WhereClause *pWC, Expr *p, u8 wtFlags){
 ** 但它也可用于在UPDATE，DELETE语句等等.
 */
 
-static void whereSplit(WhereClause *pWC, Expr *pExpr, int op){
+static void whereSplit(WhereClause *pWC, Expr *pExpr, int op){ //分割where子句
   pWC->op = (u8)op;  /*初始化WHERE子句进行分割的运算符*/
   if( pExpr==0 ) return;  /*判断pExpr是否为 0 */
   if( pExpr->op!=op ){  /*如果表达式的操作符不是指定的运算符*/
@@ -793,7 +793,7 @@ static void whereSplit(WhereClause *pWC, Expr *pExpr, int op){
 **
 ** 返回给出的游标数的位掩码。如果iCursor未设置，则返回0
 */
-static Bitmask getMask(WhereMaskSet *pMaskSet, int iCursor){
+static Bitmask getMask(WhereMaskSet *pMaskSet, int iCursor){//返回给出的游标数的位掩码bitmask,
   int i;
   assert( pMaskSet->n<=(int)sizeof(Bitmask)*8 );  /*判定*/
   for(i=0; i<pMaskSet->n; i++){
@@ -821,7 +821,7 @@ static Bitmask getMask(WhereMaskSet *pMaskSet, int iCursor){
 ** 因此我们知道pMaskSet->ix[]是永远不会有溢出操作的.
 **
 */
-static void createMask(WhereMaskSet *pMaskSet, int iCursor){
+static void createMask(WhereMaskSet *pMaskSet, int iCursor){// 为游标创建一个新的mask
   assert( pMaskSet->n < ArraySize(pMaskSet->ix) );
   pMaskSet->ix[pMaskSet->n++] = iCursor;
 }
@@ -863,7 +863,7 @@ static void createMask(WhereMaskSet *pMaskSet, int iCursor){
     2）将这条记录插入递归表；
     3）假设刚刚被提取的记录是递归表中唯一一条记录，然后，运行递归查询，把所有结果放入队列
 */
-static Bitmask exprListTableUsage(WhereMaskSet*, ExprList*);
+static Bitmask exprListTableUsage(WhereMaskSet*, ExprList*);// 递归地访问一个表达式树并生成一个位掩码指示哪些表中使用表达式树。
 static Bitmask exprSelectTableUsage(WhereMaskSet*, Select*);
 
 static Bitmask exprTableUsage(WhereMaskSet *pMaskSet, Expr *p){
@@ -961,7 +961,7 @@ static Bitmask exprSelectTableUsage(WhereMaskSet *pMaskSet, Select *pS){
 ** 注意：除 || 之外,任何二元操作符的结果都是一个数值型的值. 
 **       || 返回两个操作数连接后的大字符串。
 */
-static int allowedOp(int op){
+static int allowedOp(int op){//term中允许的运算符
   assert( TK_GT>TK_EQ && TK_GT<TK_GE );
   assert( TK_LT>TK_EQ && TK_LT<TK_GE );
   assert( TK_LE>TK_EQ && TK_LE<TK_GE );
@@ -1027,7 +1027,7 @@ static void exprCommute(Parse *pParse, Expr *pExpr){
 **
 ** 把TK_xx操作符转化为WO_xx位掩码
 */
-static u16 operatorMask(int op){
+static u16 operatorMask(int op){//转换TK_xx操作符到WO_xx的位掩码
   u16 c;
   assert( allowedOp(op) );
   if( op==TK_IN ){                               /*判断op是否等于TK_IN */ 
@@ -1119,7 +1119,7 @@ static WhereTerm *findTerm(
 }
 
 /* Forward reference 前置引用 */
-static void exprAnalyze(SrcList*, WhereClause*, int);
+static void exprAnalyze(SrcList*, WhereClause*, int);//对所有WhereClause中的WhereTerm进行分析 
 
 /*
 ** Call exprAnalyze on all terms in a WHERE clause.  
@@ -2129,7 +2129,7 @@ static void exprAnalyze(
       pNewExpr = sqlite3PExpr(pParse, TK_MATCH, 
                               0, sqlite3ExprDup(db, pRight, 0), 0);
       idxNew = whereClauseInsert(pWC, pNewExpr, TERM_VIRTUAL|TERM_DYNAMIC);
-      testcase( idxNew==0 );
+      testcase( idxNew==0 );//检测是否转换成功
       pNewTerm = &pWC->a[idxNew];
       pNewTerm->prereqRight = prereqExpr;
       pNewTerm->leftCursor = pLeft->iTable;
@@ -2375,7 +2375,7 @@ static int isDistinctIndex(
 /* 如果DISTINCT表达式列表是作为第三参数是传递冗余，则返回1。如果数据库中包含一
 ** 个保证查询结果完全不同的唯一索引存在，则这个DISTINCT列表是冗余的。
 */
-static int isDistinctRedundant(
+static int isDistinctRedundant(//判断是否DISTINCT冗余
   Parse *pParse,
   SrcList *pTabList,
   WhereClause *pWC,
@@ -2548,7 +2548,7 @@ static int isSortingIndex(
 >>>>>>> 91288352e83e9763d493ed84aec377d15ced3949
   sqlite3 *db = pParse->db;
 
-  if( !pOrderBy ) return 0;
+  if( !pOrderBy ) return 0;//如果ORDER BY 子句不是DESC 返回0
   if( wsFlags & WHERE_COLUMN_IN ) return 0;
   if( pIdx->bUnordered ) return 0;
 
